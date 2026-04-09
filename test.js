@@ -1,2 +1,2 @@
 // add this line anywhere
-console.log("hello world");
+console.log("WELCOME TO PR GENIE!");

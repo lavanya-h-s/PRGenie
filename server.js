@@ -8,6 +8,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+console.log("Testing PR");
 
 // 🔥 ADD FUNCTION HERE (outside webhook)
 async function getPRFiles(owner, repo, prNumber) {
@@ -65,3 +66,4 @@ app.post("/webhook", async (req, res) => {
 app.listen(5000, () => {
     console.log("Server running on port 5000");
 });
+

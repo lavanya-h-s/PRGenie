@@ -8,7 +8,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-console.log("Testing PR");
+console.log("PR test 2");
 
 // 🔥 ADD FUNCTION HERE (outside webhook)
 async function getPRFiles(owner, repo, prNumber) {

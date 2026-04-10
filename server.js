@@ -168,10 +168,15 @@ app.post("/webhook", async (req, res) => {
 
       const files = await getPRFiles(owner, repo, prNumber);
 
-      const structuredData = files.map((file) => ({
-        file: file.filename,
-        changes: parseDiff(file),
-      }));
+      const structuredData = files
+      .filter(file =>
+      !file.filename.includes("package-lock.json") &&
+      !file.filename.includes("node_modules")
+      )
+      .map(file => ({
+      file: file.filename,
+      changes: parseDiff(file),
+  }));
 
       const aiResponse = await analyzeCodeWithGemini(structuredData);
 

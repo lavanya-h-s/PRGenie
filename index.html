@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PRGenie</title>
+    <style>
+        body {
+            font-family: Arial;
+            background: #f4f6f8;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #222;
+        }
+
+        button {
+            padding: 12px 20px;
+            font-size: 16px;
+            background: #000;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+
+        .box {
+            margin-top: 20px;
+            padding: 15px;
+            background: #fff;
+            border-radius: 8px;
+        }
+
+        .issue {
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 5px;
+        }
+
+        .security { background: #ffe5e5; color: red; }
+        .bug { background: #fff4e5; color: orange; }
+        .style { background: #e5f0ff; color: blue; }
+
+    </style>
+</head>
+
+<body>
+
+<h1>🚀 PRGenie AI Code Review</h1>
+
+<button onclick="analyze()">Analyze PR</button>
+
+<div class="box">
+    <h2 id="score">Risk Score: -</h2>
+</div>
+
+<div class="box">
+    <h3>Detected Issues</h3>
+    <div id="issues"></div>
+</div>
+
+<script>
+async function analyze() {
+    const res = await fetch("http://localhost:5000/analyze");
+    const data = await res.json();
+
+    document.getElementById("score").innerText =
+        "Risk Score: " + data.riskScore;
+
+    const container = document.getElementById("issues");
+    container.innerHTML = "";
+
+    data.issues.forEach(issue => {
+        const div = document.createElement("div");
+
+        div.className = "issue " + issue.type;
+
+        div.innerHTML = `
+            <b>${issue.type.toUpperCase()}</b> - ${issue.message}<br>
+            <small>File: ${issue.file} | Line: ${issue.line}</small>
+        `;
+
+        container.appendChild(div);
+    });
+}
+</script>
+
+</body>
+</html>

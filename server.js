@@ -11,7 +11,6 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const axios = require("axios");
-const { GoogleGenAI } = require("@google/genai");
 
 const app = express();
 
@@ -23,10 +22,6 @@ app.get("/", (req, res) => {
   res.send("Server is working ✅");
 });
 
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY,
-});
-
 // 🔹 Get PR files
 async function getPRFiles(owner, repo, prNumber) {
   const url = `https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}/files`;
@@ -35,6 +30,7 @@ async function getPRFiles(owner, repo, prNumber) {
     const response = await axios.get(url, {
       headers: {
         Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+        Accept: "application/vnd.github.v3+json",
       },
     });
     return response.data;
@@ -78,15 +74,15 @@ function parseDiff(file) {
   return changes;
 }
 
-// ✅ 🔥 FIXED GEMINI FUNCTION (ONLY THIS WAS WRONG)
+// 🔥 Rule-based analysis
 async function analyzeCodeWithGemini(data) {
   let issues = [];
 
   data.forEach((file) => {
     file.changes.forEach((change) => {
-      const content = change.content.toLowerCase();
+      const code = change.content;
+      const content = code.toLowerCase();
 
-      // 🔐 Detect hardcoded passwords
       if (content.includes("password") || content.includes("123")) {
         issues.push({
           type: "security",
@@ -97,25 +93,33 @@ async function analyzeCodeWithGemini(data) {
         });
       }
 
-      // 🐞 Detect console logs
+      if (code.includes("==") && !code.includes("===")) {
+        issues.push({
+          type: "bug",
+          file: file.file,
+          line: change.line,
+          message: "Loose equality used",
+          suggestion: "Use ===",
+        });
+      }
+
+      if (/^[A-Z_]+$/.test(code.trim())) {
+        issues.push({
+          type: "style",
+          file: file.file,
+          line: change.line,
+          message: "Bad naming convention",
+          suggestion: "Use camelCase",
+        });
+      }
+
       if (content.includes("console.log")) {
         issues.push({
           type: "style",
           file: file.file,
           line: change.line,
           message: "Console log found",
-          suggestion: "Remove console.log in production",
-        });
-      }
-
-      // ⚠️ Detect TODOs
-      if (content.includes("todo")) {
-        issues.push({
-          type: "style",
-          file: file.file,
-          line: change.line,
-          message: "TODO found",
-          suggestion: "Complete or remove TODO",
+          suggestion: "Remove logs",
         });
       }
     });
@@ -123,8 +127,11 @@ async function analyzeCodeWithGemini(data) {
 
   return JSON.stringify(issues);
 }
+
 // 🔹 Risk score
 function calculateRisk(issues) {
+  if (!Array.isArray(issues)) return 0;
+
   let score = 0;
 
   issues.forEach((issue) => {
@@ -136,15 +143,22 @@ function calculateRisk(issues) {
   return Math.min(score, 100);
 }
 
+let lastResult = {
+  riskScore: 0,
+  issues: [],
+};
+
 // 🔹 Webhook
 app.post("/webhook", async (req, res) => {
   console.log("Webhook triggered");
 
   const event = req.headers["x-github-event"];
+  const action = req.body.action;
+
   if (
-  event === "pull_request" &&
-  (req.body.action === "opened" || req.body.action === "synchronize")
-) {
+    event === "pull_request" &&
+    (action === "opened" || action === "synchronize")
+  ) {
     try {
       const pr = req.body.pull_request;
 
@@ -159,9 +173,6 @@ app.post("/webhook", async (req, res) => {
         changes: parseDiff(file),
       }));
 
-      console.log("Structured Data:");
-      console.log(JSON.stringify(structuredData, null, 2));
-
       const aiResponse = await analyzeCodeWithGemini(structuredData);
 
       let issues = [];
@@ -170,12 +181,13 @@ app.post("/webhook", async (req, res) => {
         try {
           issues = JSON.parse(aiResponse);
         } catch {
-          console.log("❌ JSON parse error");
           issues = [];
         }
       }
 
       const riskScore = calculateRisk(issues);
+
+      lastResult = { riskScore, issues };
 
       console.log("Issues:", issues);
       console.log("Risk Score:", riskScore);
@@ -186,6 +198,11 @@ app.post("/webhook", async (req, res) => {
   }
 
   res.sendStatus(200);
+});
+
+// 🔥 NEW: FRONTEND API
+app.get("/analyze", (req, res) => {
+  res.json(lastResult);
 });
 
 // 🔹 Start server

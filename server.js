@@ -150,7 +150,6 @@ async function analyzeCode(data) {
 }
 function calculateRisk(issues) {
   if (!Array.isArray(issues)) return 0;
-
   let score = 0;
 
   issues.forEach((issue) => {

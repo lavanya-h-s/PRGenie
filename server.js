@@ -117,28 +117,30 @@ async function analyzeCodeWithGemini(data) {
       }
 
       // 🧠 NAMING CONVENTION (IMPROVED)
-      const words = code.split(/[\s,;(){}=]+/);
+      // 🧠 NAMING CONVENTION FIXED
+const words = code.split(/[\s,;(){}=]+/);
 
-      words.forEach((word) => {
-        if (
-          word &&
-          /^[a-zA-Z]+$/.test(word) &&
-          (
-            word.length <= 2 ||                  // x, y, a
-            word.toLowerCase().includes("temp") || // temp, tmp
-            word.toLowerCase().includes("data") || // data1, data
-            /^[A-Z_]+$/.test(word)                // ALL CAPS misuse
-          )
-        ) {
-          issues.push({
-            type: "naming",
-            file: file.file,
-            line: change.line,
-            message: `Poor variable naming: "${word}"`,
-            suggestion: "Use descriptive camelCase naming",
-          });
-        }
-      });
+words.forEach(word => {
+  if (!word) return;
+
+  const clean = word.trim();
+
+  if (
+    /^[a-zA-Z]+$/.test(clean) && // only alphabets
+    (
+      clean.length <= 2 ||                 // x, y
+      ["temp", "data", "val", "num"].includes(clean.toLowerCase()) // common bad names
+    )
+  ) {
+    issues.push({
+      type: "naming",
+      file: file.file,
+      line: change.line,
+      message: `Poor variable naming: "${clean}"`,
+      suggestion: "Use descriptive camelCase naming"
+    });
+  }
+});
 
     });
   });

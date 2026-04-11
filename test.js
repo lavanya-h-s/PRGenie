@@ -9,6 +9,7 @@ password = "test123";
 let x = 10;
 let temp = "hello";
 let data = 5;
+let y = 20;
 
 console.log(x, temp, data);
 app.listen(5000, () => {

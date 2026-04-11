@@ -83,6 +83,7 @@ async function analyzeCodeWithGemini(data) {
       const code = change.content;
       const content = code.toLowerCase();
 
+      // 🔐 SECURITY
       if (content.includes("password") || content.includes("123")) {
         issues.push({
           type: "security",
@@ -93,6 +94,7 @@ async function analyzeCodeWithGemini(data) {
         });
       }
 
+      // 🐞 BUG
       if (code.includes("==") && !code.includes("===")) {
         issues.push({
           type: "bug",
@@ -103,16 +105,7 @@ async function analyzeCodeWithGemini(data) {
         });
       }
 
-      if (/^[A-Z_]+$/.test(code.trim())) {
-        issues.push({
-          type: "style",
-          file: file.file,
-          line: change.line,
-          message: "Bad naming convention",
-          suggestion: "Use camelCase",
-        });
-      }
-
+      // 🎨 STYLE (console logs)
       if (content.includes("console.log")) {
         issues.push({
           type: "style",
@@ -122,6 +115,31 @@ async function analyzeCodeWithGemini(data) {
           suggestion: "Remove logs",
         });
       }
+
+      // 🧠 NAMING CONVENTION (IMPROVED)
+      const words = code.split(/[\s,;(){}=]+/);
+
+      words.forEach((word) => {
+        if (
+          word &&
+          /^[a-zA-Z]+$/.test(word) &&
+          (
+            word.length <= 2 ||                  // x, y, a
+            word.toLowerCase().includes("temp") || // temp, tmp
+            word.toLowerCase().includes("data") || // data1, data
+            /^[A-Z_]+$/.test(word)                // ALL CAPS misuse
+          )
+        ) {
+          issues.push({
+            type: "naming",
+            file: file.file,
+            line: change.line,
+            message: `Poor variable naming: "${word}"`,
+            suggestion: "Use descriptive camelCase naming",
+          });
+        }
+      });
+
     });
   });
 

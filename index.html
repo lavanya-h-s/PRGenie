@@ -1,85 +1,185 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>PRGenie</title>
-    <style>
-        body {
-            font-family: Arial;
-            background: #f4f6f8;
-            padding: 20px;
-        }
+  <title>PRGenie AI</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-        h1 {
-            color: #222;
-        }
+  <style>
+  body {
+    margin: 0;
+    font-family: Arial;
+    background: linear-gradient(135deg, #e6d6ff, #cbb4f6);
+    color: #2d1b4e;
+  }
 
-        button {
-            padding: 12px 20px;
-            font-size: 16px;
-            background: #000;
-            color: #fff;
-            border: none;
-            cursor: pointer;
-        }
+  h1 {
+    padding: 20px;
+    color: #3b2a6d;
+  }
 
-        .box {
-            margin-top: 20px;
-            padding: 15px;
-            background: #fff;
-            border-radius: 8px;
-        }
+  button {
+    padding: 10px 20px;
+    background: #8e7dff;
+    border: none;
+    color: white;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-left: 20px;
+    transition: 0.3s;
+  }
 
-        .issue {
-            padding: 10px;
-            margin: 8px 0;
-            border-radius: 5px;
-        }
+  button:hover {
+    background: #6f5cff;
+  }
 
-        .security { background: #ffe5e5; color: red; }
-        .bug { background: #fff4e5; color: orange; }
-        .style { background: #e5f0ff; color: blue; }
+  .container {
+    display: flex;
+    gap: 20px;
+    padding: 20px;
+  }
 
-    </style>
+  .card {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.4);
+    backdrop-filter: blur(10px);
+    padding: 20px;
+    border-radius: 20px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+  }
+
+  .issues {
+    padding: 20px;
+  }
+
+  .issue {
+    margin: 10px 0;
+    padding: 12px;
+    border-radius: 10px;
+    font-weight: 500;
+  }
+
+  .bug {
+    background: rgba(255, 165, 0, 0.2);
+    color: #a15c00;
+  }
+
+  .security {
+    background: rgba(255, 0, 0, 0.2);
+    color: #8b0000;
+  }
+
+  .style {
+    background: rgba(0, 123, 255, 0.2);
+    color: #003c8f;
+  }
+
+  /* 💜 NEW NAMING STYLE */
+  .naming {
+    background: rgba(128, 0, 128, 0.2);
+    color: #6a0dad;
+  }
+
+  canvas {
+    max-width: 300px;
+    margin: auto;
+  }
+</style>
 </head>
 
 <body>
 
-<h1>🚀 PRGenie AI Code Review</h1>
-
+<h1>🚀 PRGenie AI</h1>
 <button onclick="analyze()">Analyze PR</button>
 
-<div class="box">
-    <h2 id="score">Risk Score: -</h2>
+<div class="container">
+
+  <!-- Risk Score -->
+  <div class="card">
+    <h2>Risk Score</h2>
+    <canvas id="riskChart"></canvas>
+  </div>
+
+  <!-- Pie Chart -->
+  <div class="card">
+    <h2>Issue Breakdown</h2>
+    <canvas id="pieChart"></canvas>
+  </div>
+
 </div>
 
-<div class="box">
-    <h3>Detected Issues</h3>
-    <div id="issues"></div>
+<!-- Issues -->
+<div class="issues">
+  <h2>Detected Issues</h2>
+  <div id="issueList"></div>
 </div>
 
 <script>
+let pieChart, riskChart;
+
 async function analyze() {
-    const res = await fetch("http://localhost:5000/analyze");
-    const data = await res.json();
+  const res = await fetch("http://localhost:5000/analyze");
+  const data = await res.json();
 
-    document.getElementById("score").innerText =
-        "Risk Score: " + data.riskScore;
+  const issues = data.issues;
 
-    const container = document.getElementById("issues");
-    container.innerHTML = "";
+  // 🔥 UPDATED COUNTS (WITH NAMING)
+  let bug = 0, security = 0, style = 0, naming = 0;
 
-    data.issues.forEach(issue => {
-        const div = document.createElement("div");
+  issues.forEach(i => {
+    if (i.type === "bug") bug++;
+    else if (i.type === "security") security++;
+    else if (i.type === "style") style++;
+    else if (i.type === "naming") naming++; // 💜 NEW
+  });
 
-        div.className = "issue " + issue.type;
+  // 🔥 Risk Chart
+  if (riskChart) riskChart.destroy();
 
-        div.innerHTML = `
-            <b>${issue.type.toUpperCase()}</b> - ${issue.message}<br>
-            <small>File: ${issue.file} | Line: ${issue.line}</small>
-        `;
+  riskChart = new Chart(document.getElementById("riskChart"), {
+    type: "doughnut",
+    data: {
+      labels: ["Risk", "Safe"],
+      datasets: [{
+        data: [data.riskScore, 100 - data.riskScore],
+        backgroundColor: ["#8e7dff", "#ddd"]
+      }]
+    },
+    options: {
+      cutout: "70%",
+      plugins: { legend: { display: false } }
+    }
+  });
 
-        container.appendChild(div);
-    });
+  // 🔥 UPDATED PIE CHART (WITH NAMING)
+  if (pieChart) pieChart.destroy();
+
+  pieChart = new Chart(document.getElementById("pieChart"), {
+    type: "pie",
+    data: {
+      labels: ["Bug", "Security", "Style", "Naming"], // 💜 NEW
+      datasets: [{
+        data: [bug, security, style, naming],
+        backgroundColor: ["orange", "red", "blue", "purple"] // 💜 NEW
+      }]
+    }
+  });
+
+  // 🔥 Issues List
+  const list = document.getElementById("issueList");
+  list.innerHTML = "";
+
+  issues.forEach(issue => {
+    const div = document.createElement("div");
+
+    div.className = "issue " + issue.type;
+
+    div.innerHTML = `
+      <b>${issue.type.toUpperCase()}</b> - ${issue.message}<br>
+      <small>${issue.file} : Line ${issue.line}</small>
+    `;
+
+    list.appendChild(div);
+  });
 }
 </script>
 

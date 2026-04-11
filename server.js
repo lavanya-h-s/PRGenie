@@ -120,7 +120,7 @@ async function analyzeCode(data) {
       words.forEach((word) => {
         if (!word) return;
 
-        const clean = word.trim();
+        const clean = word.trim().toLowerCase();
 
         if (keywords.includes(clean)) return;
 
@@ -128,16 +128,19 @@ async function analyzeCode(data) {
           /^[a-zA-Z]+$/.test(clean) &&
           (
             clean.length <= 2 ||
-            ["temp", "data", "val", "num"].includes(clean.toLowerCase())
+            ["temp", "data", "val", "num"].includes(clean)
           )
         ) {
-          if (!issues.some(i => i.message.includes(clean) && i.line === change.line)) {
+          const key = `${file.file}-${clean}`;
+
+          if (!issues.some(i => i.key === key)) {
             issues.push({
+              key: key,
               type: "naming",
               file: file.file,
               line: change.line,
               message: `Poor variable naming: "${clean}"`,
-              suggestion: "Use descriptive camelCase naming",
+              suggestion: "Use descriptive camelCase naming"
             });
           }
         }
@@ -146,10 +149,14 @@ async function analyzeCode(data) {
     });
   });
 
+  issues = issues.map(({ key, ...rest }) => rest);
+
   return JSON.stringify(issues);
 }
+
 function calculateRisk(issues) {
   if (!Array.isArray(issues)) return 0;
+
   let score = 0;
 
   issues.forEach((issue) => {

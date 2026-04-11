@@ -148,7 +148,6 @@ async function analyzeCode(data) {
 
   return JSON.stringify(issues);
 }
-
 function calculateRisk(issues) {
   if (!Array.isArray(issues)) return 0;
 

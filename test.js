@@ -5,11 +5,11 @@ app.get("/", (req, res) => {
   res.send("Working ✅");
 });
 
-password = "123456";
-let x = 10;
-let temp = "hello";
-let data = 5;
-let y = 20;
+password = "12345";
+let x = 11;
+let temp = "hello world";
+let data = 50;
+let y = 2;
 
 console.log(x, temp, data);
 app.listen(5000, () => {

@@ -223,7 +223,6 @@ app.post("/webhook", async (req, res) => {
       console.error("Webhook error:", err);
     }
   }
-
   res.sendStatus(200);
 });
 

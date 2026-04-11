@@ -8,7 +8,7 @@ app.get("/", (req, res) => {
 password = "123456";
 let x = 1;
 let temp = "hel";
-let data = 50;
+let data = 5;
 let y = 20;
 
 console.log(x, temp, data);

@@ -1,4 +1,3 @@
-// 🔥 Catch errors (TOP)
 process.on("uncaughtException", (err) => {
   console.error("UNCAUGHT ERROR:", err);
 });
@@ -17,12 +16,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ✅ Test route
 app.get("/", (req, res) => {
-  res.send("Server is working ✅");
+  res.send("Server is working");
 });
 
-// 🔹 Get PR files
 async function getPRFiles(owner, repo, prNumber) {
   const url = `https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}/files`;
 
@@ -40,7 +37,6 @@ async function getPRFiles(owner, repo, prNumber) {
   }
 }
 
-// 🔹 Parse diff
 function parseDiff(file) {
   const patch = file.patch;
   if (!patch) return [];
@@ -74,16 +70,21 @@ function parseDiff(file) {
   return changes;
 }
 
-// 🔥 Rule-based analysis
-async function analyzeCodeWithGemini(data) {
+async function analyzeCode(data) {
   let issues = [];
+
+  const keywords = [
+    "if", "else", "for", "while", "do",
+    "switch", "case", "break", "continue",
+    "function", "return", "const", "let", "var",
+    "true", "false", "null", "undefined"
+  ];
 
   data.forEach((file) => {
     file.changes.forEach((change) => {
       const code = change.content;
       const content = code.toLowerCase();
 
-      // 🔐 SECURITY
       if (content.includes("password") || content.includes("123")) {
         issues.push({
           type: "security",
@@ -94,7 +95,6 @@ async function analyzeCodeWithGemini(data) {
         });
       }
 
-      // 🐞 BUG
       if (code.includes("==") && !code.includes("===")) {
         issues.push({
           type: "bug",
@@ -105,7 +105,6 @@ async function analyzeCodeWithGemini(data) {
         });
       }
 
-      // 🎨 STYLE (console logs)
       if (content.includes("console.log")) {
         issues.push({
           type: "style",
@@ -116,31 +115,33 @@ async function analyzeCodeWithGemini(data) {
         });
       }
 
-      // 🧠 NAMING CONVENTION (IMPROVED)
-      // 🧠 NAMING CONVENTION FIXED
-const words = code.split(/[\s,;(){}=]+/);
+      const words = code.split(/[\s,;(){}=]+/);
 
-words.forEach(word => {
-  if (!word) return;
+      words.forEach((word) => {
+        if (!word) return;
 
-  const clean = word.trim();
+        const clean = word.trim();
 
-  if (
-    /^[a-zA-Z]+$/.test(clean) && // only alphabets
-    (
-      clean.length <= 2 ||                 // x, y
-      ["temp", "data", "val", "num"].includes(clean.toLowerCase()) // common bad names
-    )
-  ) {
-    issues.push({
-      type: "naming",
-      file: file.file,
-      line: change.line,
-      message: `Poor variable naming: "${clean}"`,
-      suggestion: "Use descriptive camelCase naming"
-    });
-  }
-});
+        if (keywords.includes(clean)) return;
+
+        if (
+          /^[a-zA-Z]+$/.test(clean) &&
+          (
+            clean.length <= 2 ||
+            ["temp", "data", "val", "num"].includes(clean.toLowerCase())
+          )
+        ) {
+          if (!issues.some(i => i.message.includes(clean) && i.line === change.line)) {
+            issues.push({
+              type: "naming",
+              file: file.file,
+              line: change.line,
+              message: `Poor variable naming: "${clean}"`,
+              suggestion: "Use descriptive camelCase naming",
+            });
+          }
+        }
+      });
 
     });
   });
@@ -148,7 +149,6 @@ words.forEach(word => {
   return JSON.stringify(issues);
 }
 
-// 🔹 Risk score
 function calculateRisk(issues) {
   if (!Array.isArray(issues)) return 0;
 
@@ -168,10 +168,7 @@ let lastResult = {
   issues: [],
 };
 
-// 🔹 Webhook
 app.post("/webhook", async (req, res) => {
-  console.log("Webhook triggered");
-
   const event = req.headers["x-github-event"];
   const action = req.body.action;
 
@@ -189,16 +186,16 @@ app.post("/webhook", async (req, res) => {
       const files = await getPRFiles(owner, repo, prNumber);
 
       const structuredData = files
-      .filter(file =>
-      !file.filename.includes("package-lock.json") &&
-      !file.filename.includes("node_modules")
-      )
-      .map(file => ({
-      file: file.filename,
-      changes: parseDiff(file),
-  }));
+        .filter(file =>
+          !file.filename.includes("package-lock.json") &&
+          !file.filename.includes("node_modules")
+        )
+        .map(file => ({
+          file: file.filename,
+          changes: parseDiff(file),
+        }));
 
-      const aiResponse = await analyzeCodeWithGemini(structuredData);
+      const aiResponse = await analyzeCode(structuredData);
 
       let issues = [];
 
@@ -225,12 +222,10 @@ app.post("/webhook", async (req, res) => {
   res.sendStatus(200);
 });
 
-// 🔥 NEW: FRONTEND API
 app.get("/analyze", (req, res) => {
   res.json(lastResult);
 });
 
-// 🔹 Start server
 app.listen(5000, "0.0.0.0", () => {
   console.log("Server running on port 5000");
 });

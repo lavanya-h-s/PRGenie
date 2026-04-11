@@ -5,7 +5,7 @@ app.get("/", (req, res) => {
   res.send("Working ✅");
 });
 
-password = "test123";
+password = "123456";
 let x = 10;
 let temp = "hello";
 let data = 5;
